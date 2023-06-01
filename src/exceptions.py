@@ -1,0 +1,4 @@
+
+
+class UnsupportedTypeException(BaseException):
+    pass
