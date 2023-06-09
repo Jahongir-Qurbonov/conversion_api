@@ -87,7 +87,8 @@ class Converter(ConverterWorker):
         _out_file_path = result.get("out_file_path", False)
         if not _out_file_path:
             return None
+
         out_file_path = self.out_directory + _out_file_path
-        if os.path.exists(out_file_path):
+        if not os.path.exists(out_file_path):
             return None
         return out_file_path, result["out_file_name"]
