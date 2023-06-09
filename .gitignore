@@ -1,6 +1,9 @@
 .sublime-project.sublime-workspace
 config.sublime-workspace
 config.yml
-tmp/*
-.vscode/*
-.venv/*
+tmp/
+.vscode/
+.venv/
+.idea/
+__pycache__/
+*.pyc
