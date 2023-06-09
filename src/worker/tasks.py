@@ -75,7 +75,9 @@ class ConverterWorker(BaseConverter, ActorMixin):
         out_file_path = self.out_directory + _out_file_path
 
         convertion_func = self.__getattribute__(func_name)
-        convertion_func(in_file_path, out_file_path, message, result_ttl)
+        convertion_func(
+            in_file_path, out_file_path, message=message, result_ttl=result_ttl
+        )
 
         self._delete.send(in_file_path)
         self._delete.send(out_file_path, result_ttl)
