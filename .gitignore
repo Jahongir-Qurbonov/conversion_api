@@ -1,16 +1,10 @@
 .sublime-project.sublime-workspace
 config.sublime-workspace
 config.yml
-<<<<<<< HEAD
 tmp/
 .vscode/
 .venv/
 .idea/
 __pycache__/
 .pytest_cache/
-*.pyc
-=======
-tmp/*
-.vscode/*
-.venv/*
->>>>>>> parent of 627becc (fix ignore files)
+src/files/
