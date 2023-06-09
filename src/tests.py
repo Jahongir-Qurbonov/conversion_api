@@ -16,7 +16,7 @@ def test_full():
     response0 = client.get(base_url + "converter/conversion-types")
     res0_json = response0.json()
     assert response0.status_code == 200
-    pprint(res0_json)
+    print("1 >>>", res0_json, "\n")
 
     # send convert
     files = [
@@ -28,7 +28,7 @@ def test_full():
         files=files,
     )
     assert response1.status_code == 201
-    pprint(response1.json())
+    print("2 >>>", response1.json(), "\n")
 
     # get convertions
     message_id = response1.json().get("message_id")
@@ -41,13 +41,13 @@ def test_full():
         # if response2.json().get("status") != "result missing":
         #     break
         n += 1
-        time.sleep(3)
+        time.sleep(4)
     else:
         assert response2.status_code == 200
-        pprint(response2.json())
+        print("3 >>>", response2.json(), "\n")
 
     # get file
     response3 = client.get(
         base_url + "converter/download", params={"message_id": message_id}
     )
-    print(response3.headers)
+    print("4 >>>", response3.headers)
