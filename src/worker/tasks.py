@@ -27,7 +27,7 @@ class ConverterWorker(BaseConverter, ActorMixin):
         self.actor(
             self.convert, actor_name="converter", max_retries=0, store_results=True
         )
-        self.actor(self._delete)
+        self.actor(self._delete, max_retries=0)
 
         if __name__ != "src.worker.tasks":
             self.in_directory = "files/in/"
