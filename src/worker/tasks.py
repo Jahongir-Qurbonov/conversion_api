@@ -1,52 +1,87 @@
 import os
+import time
 
+from dramatiq import get_broker, Message
 from dramatiq.middleware import CurrentMessage
+from dramatiq.results import Results
+
+# from dramatiq.worker import has_results_middleware
 
 from .converter import BaseConverter
-from .utils import ActorMixin
+from .mixins import ActorMixin
+
+# from .results_middleware import CustomResults
 
 
 class ConverterWorker(BaseConverter, ActorMixin):
-    def __init__(self) -> None:
-        self.actor(self.convert, max_retries=0, store_results=True)
+    def __init__(self, backend: Results = None) -> None:
+        if backend is None:
+            self.broker = get_broker()
+            for middleware in self.broker.middleware:
+                if isinstance(middleware, Results):
+                    self.result_middleware: Results = middleware
+                    break
+            else:
+                raise RuntimeError("The default broker doesn't have a results backend.")
 
-        self.__directory = "files/"
-        if not os.path.isdir(self.__directory):
-            os.mkdir(self.__directory)
+        self.actor(
+            self.convert, actor_name="converter", max_retries=0, store_results=True
+        )
+        self.actor(self._delete)
 
-    def __save(self, file: bytes, file_path: str) -> None:
-        with open(file_path, "wb") as f:
+        if __name__ != "src.worker.tasks":
+            self.in_directory = "files/in/"
+        else:
+            self.in_directory = "src/files/in/"
+        if not os.path.isdir(self.in_directory):
+            if os.path.exists(self.in_directory):
+                raise Exception("Folder directory error")
+            os.makedirs(self.in_directory)
+
+        if __name__ != "src.worker.tasks":
+            self.out_directory = "files/out/"
+        else:
+            self.out_directory = "src/files/out/"
+        if not os.path.isdir(self.out_directory):
+            if os.path.exists(self.out_directory):
+                raise Exception("Folder directory error")
+            os.makedirs(self.out_directory)
+
+    def _save(self, file: bytes, in_file_path: str) -> None:
+        with open(self.in_directory + in_file_path, "wb") as f:
             f.write(file)
 
-    def __delete(self, file_path: str):
+    def _delete(self, file_path: str, result_ttl: int = None):
+        if result_ttl is not None:
+            time.sleep(result_ttl / 1000)
         if os.path.exists(file_path):
             os.remove(file_path)
-
-    def __get_bytes(self, file_path: str):
-        with open(file_path, "rb") as f:
-            file = f.read()
-        return file
 
     def convert(
         self,
         func_name: str,
-        file: bytes,
-        from_ext: str,
-        to_ext: str,
+        _in_file_path: bytes,
+        _out_file_path: str,
         out_file_name: str,
     ):
-        message_id = CurrentMessage.get_current_message().message_id
+        message: Message = CurrentMessage.get_current_message()
 
-        file_path = self.__directory + message_id + "." + from_ext
-        out_file_path = self.__directory + message_id + "." + to_ext
+        result_ttl = self.result_middleware._lookup_options(self.broker, message)[1]
+        self.result_middleware.backend.store_result(
+            message, {"status": "in process"}, result_ttl
+        )
 
-        self.__save(file, file_path)
+        in_file_path = self.in_directory + _in_file_path
+        out_file_path = self.out_directory + _out_file_path
 
         convertion_func = self.__getattribute__(func_name)
-        convertion_func(file_path, out_file_path)
+        convertion_func(in_file_path, out_file_path, message, result_ttl)
 
-        _bytes = self.__get_bytes(out_file_path)
-        self.__delete(file_path)
-        self.__delete(out_file_path)
+        self._delete.send(in_file_path)
+        self._delete.send(out_file_path, result_ttl)
 
-        return _bytes, out_file_name
+        return {
+            "status": "success",
+            "out_file_path": _out_file_path,
+            "out_file_name": out_file_name,
+        }

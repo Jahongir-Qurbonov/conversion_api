@@ -23,11 +23,11 @@ def test_full():
         ("file", ("Keycode.pdf", open("/home/jahongir/Documents/Keycode.pdf", "rb"))),
     ]
     response1 = client.post(
-        base_url+"converter/upload",
+        base_url + "converter/upload",
         params={"convert_to": "new.docx"},
         files=files,
     )
-    assert response1.status_code == 200
+    assert response1.status_code == 201
     pprint(response1.json())
 
     # get convertions
@@ -36,16 +36,18 @@ def test_full():
     n = 0
     while n < 1:
         response2 = client.get(
-            base_url + "converter/download", params={"message_id": message_id}
+            base_url + "converter/check", params={"message_id": message_id}
         )
         # if response2.json().get("status") != "result missing":
         #     break
         n += 1
-        time.sleep(1)
+        time.sleep(3)
     else:
         assert response2.status_code == 200
-        pprint(dict(response2.headers.items()))
+        pprint(response2.json())
 
-    # response3 = client.get(base_url + "converter/download",
-    #                        params={"message_id": message_id})
-    # print(response3)
+    # get file
+    response3 = client.get(
+        base_url + "converter/download", params={"message_id": message_id}
+    )
+    print(response3.headers)

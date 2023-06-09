@@ -1,41 +1,29 @@
+import os
 import pathlib
 import mimetypes
+import uuid
 
 from typing import Callable, Union
 
 from fastapi import UploadFile
-from dramatiq import Message \
-    # , Broker, Encoder, get_broker, set_broker, set_encoder
+from dramatiq import Message  # , Broker, Encoder, get_broker, set_broker, set_encoder
+
 # from dramatiq.results.backends.redis import RedisBackend
 from dramatiq.results import ResultMissing  # ,Results, ResultBackend
 from dramatiq.actor import Actor, P, R
 
-from src import worker
+from src.worker.tasks import ConverterWorker
 
 
-class Converter(worker.ConverterWorker):
+class Converter(ConverterWorker):
     def __init__(
-            self,
-            # broker: Broker,
-            # encoder: Encoder,
-            # result_middleware: Results,
-            # result_backend: RedisBackend,
+        self,
     ) -> None:
-        # self.__broker = broker
-        # self.__encoder = encoder
-        # self.__result_middleware = result_middleware
-
-        self.convert: Union[Actor[P, R], Callable]
         super().__init__()
         self.__configure()
+        self.convert: Union[Actor[P, R], Callable]
 
     def __configure(self) -> None:
-        # configure dramatiq
-        # self.__broker.add_middleware(self.__result_middleware)
-
-        # set_broker(self.__broker)
-        # set_encoder(self.__encoder)
-
         self.mime_types = []
         class_attrs = self.__dir__()
         conversion_funcs = [
@@ -49,7 +37,7 @@ class Converter(worker.ConverterWorker):
             )
 
     def send_task(self, file: UploadFile, convert_to: str) -> dict:
-        _convert_from = pathlib.Path(args=[file.filename])
+        _convert_from = pathlib.Path(file.filename)
         _convert_to = pathlib.Path(convert_to)
 
         from_ext = _convert_from.suffix[1:]
@@ -60,7 +48,6 @@ class Converter(worker.ConverterWorker):
             self.__getattribute__(func_name)
         except AttributeError:
             return {"error": "unsupported type"}
-            # raise UnsupportedTypeException("unsupported type")
 
         if _convert_to.suffix:
             out_file_stem = _convert_to.stem
@@ -68,27 +55,39 @@ class Converter(worker.ConverterWorker):
             out_file_stem = _convert_from.stem
         out_file_name = out_file_stem + "." + to_ext
 
-        task: Message[R] = self.convert.send(
-            args=(func_name, file.file.read(), from_ext, to_ext, out_file_name)
-        )
-        return {"status": "send", "message_id": task.message_id}
+        __uuid = str(uuid.uuid4())
+        in_file_path = __uuid + "." + from_ext
+        out_file_path = __uuid + "." + to_ext
 
-    def get_converted_file(self, message_id: str) -> object | str:
+        self._save(file.file.read(), in_file_path)
+
+        task: Message[R] = self.convert.send(
+            func_name, in_file_path, out_file_path, out_file_name
+        )
+        return {"status": "submitted", "message_id": task.message_id}
+
+    def get_status(self, message_id: str) -> int | str:
         message = self.convert.message_with_options().copy(message_id=message_id)
         try:
             result = message.get_result()
         except ResultMissing:
             return "result missing"
         except Exception as e:
-            return "error"
-        return result
+            return "error in get result"
 
-    def get_file(self, message_id: str):
+        return result["status"]
+
+    def get_file(self, message_id: str) -> tuple[str, str] | None:
         message = self.convert.message_with_options().copy(message_id=message_id)
-        print(message_id)
         try:
             result = message.get_result()
-            print(type(result))
-        except:
-            return "result missing"
-        return message_id
+        except Exception:
+            return None
+
+        _out_file_path = result.get("out_file_path", False)
+        if not _out_file_path:
+            return None
+        out_file_path = self.out_directory + _out_file_path
+        if os.path.exists(out_file_path):
+            return None
+        return out_file_path, result["out_file_name"]

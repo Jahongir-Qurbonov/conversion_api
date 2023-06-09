@@ -19,12 +19,15 @@ class ConverterService:
     def convert(self, file: UploadFile, convert_to: str) -> dict:
         return self.__converter.send_task(file, convert_to)
 
-    def get_converted_file(self, message_id: str) -> str:
-        return self.__converter.get_converted_file(message_id)
+    def get_status(self, message_id: str) -> int | str:
+        return self.__converter.get_status(message_id)
 
-    def get_file(self, message_id: str):
-        file_path = self.__converter.get_file(message_id)
-        return file_path, guess_type(file_path)[0]
+    def get_file(self, message_id: str) -> tuple[str, str, str] | None:
+        _file_path = self.__converter.get_file(message_id)
+        if _file_path is None:
+            return None
+        file_path, file_name = _file_path
+        return file_path, guess_type(file_name)[0], file_name
 
     def __send_bytes_range_requests(
         self, file_obj: BinaryIO, start: int, end: int, chunk_size: int = 10_000
@@ -58,7 +61,7 @@ class ConverterService:
         return start, end
 
     def range_requests_response(
-        self, range_header: str, file_path: str, content_type: str
+        self, range_header: str, file_path: str, content_type: str, file_name: str
     ):
         """Returns StreamingResponse using Range Requests of a given file"""
 
@@ -69,6 +72,7 @@ class ConverterService:
             "accept-ranges": "bytes",
             "content-encoding": "identity",
             "content-length": str(file_size),
+            "Content-Disposition": f"attachment;filename={file_name}",
             "access-control-expose-headers": (
                 "content-type, accept-ranges, content-length, "
                 "content-range, content-encoding"
