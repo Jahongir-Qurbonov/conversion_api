@@ -23,25 +23,28 @@ class ConverterWorker(BaseConverter, ActorMixin):
                     break
             else:
                 raise RuntimeError("The default broker doesn't have a results backend.")
+        print(self.result_middleware.backend.client.connection_pool.connection_kwargs)
 
         self.actor(
             self.convert, actor_name="converter", max_retries=0, store_results=True
         )
         self.actor(self._delete, max_retries=0)
 
-        if __name__ != "src.worker.tasks":
-            self.in_directory = "files/in/"
-        else:
-            self.in_directory = "src/files/in/"
+        # if __name__ != "src.worker.tasks":
+        #     self.in_directory = "files/in/"
+        # else:
+        #     self.in_directory = "src/files/in/"
+        self.in_directory = "/mnt/files/in/"
         if not os.path.isdir(self.in_directory):
             if os.path.exists(self.in_directory):
                 raise Exception("Folder directory error")
             os.makedirs(self.in_directory)
 
-        if __name__ != "src.worker.tasks":
-            self.out_directory = "files/out/"
-        else:
-            self.out_directory = "src/files/out/"
+        # if __name__ != "src.worker.tasks":
+        #     self.out_directory = "files/out/"
+        # else:
+        #     self.out_directory = "src/files/out/"
+        self.out_directory = "/mnt/files/out/"
         if not os.path.isdir(self.out_directory):
             if os.path.exists(self.out_directory):
                 raise Exception("Folder directory error")

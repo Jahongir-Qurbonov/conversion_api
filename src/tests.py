@@ -1,16 +1,12 @@
-import time
 import httpx
-
-# from fastapi.testclient import TestClient
-# from .application import app
-from pprint import pprint
+import time
 
 client = httpx.Client()
 
 
 def test_full():
     print("\n")
-    base_url = "http://127.0.0.1:8000/"
+    base_url = "http://0.0.0.0:8000/"
 
     # get types
     response0 = client.get(base_url + "converter/conversion-types")
@@ -20,7 +16,10 @@ def test_full():
 
     # send convert
     files = [
-        ("file", ("Keycode.pdf", open("/home/jahongir/Documents/Keycode.pdf", "rb"))),
+        (
+            "file",
+            ("Keycode.pdf", open("/home/jahongir/Documents/Keycode.pdf", "rb")),
+        ),
     ]
     response1 = client.post(
         base_url + "converter/upload",
@@ -32,19 +31,15 @@ def test_full():
 
     # get convertions
     message_id = response1.json().get("message_id")
-    time.sleep(1)
-    n = 0
-    while n < 1:
+    success = ""
+    while success != "success":
         response2 = client.get(
             base_url + "converter/check", params={"message_id": message_id}
         )
-        # if response2.json().get("status") != "result missing":
-        #     break
-        n += 1
-        time.sleep(4)
-    else:
-        assert response2.status_code == 200
+        time.sleep(2)
         print("3 >>>", response2.json(), "\n")
+        success = response2.json().get("status")
+        assert response2.status_code == 200
 
     # get file
     response3 = client.get(

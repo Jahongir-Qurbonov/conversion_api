@@ -12,14 +12,14 @@ from dramatiq import Message  # , Broker, Encoder, get_broker, set_broker, set_e
 from dramatiq.results import ResultMissing  # ,Results, ResultBackend
 from dramatiq.actor import Actor, P, R
 
-from src.worker.tasks import ConverterWorker
+from src import worker
 
 
-class Converter(ConverterWorker):
+class Converter(worker.ConverterWorker):
     def __init__(
         self,
     ) -> None:
-        super().__init__()
+        super(Converter, self).__init__()
         self.__configure()
         self.convert: Union[Actor[P, R], Callable]
 
