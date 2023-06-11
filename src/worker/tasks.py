@@ -23,7 +23,6 @@ class ConverterWorker(BaseConverter, ActorMixin):
                     break
             else:
                 raise RuntimeError("The default broker doesn't have a results backend.")
-        print(self.result_middleware.backend.client.connection_pool.connection_kwargs)
 
         self.actor(
             self.convert, actor_name="converter", max_retries=0, store_results=True
