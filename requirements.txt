@@ -7,7 +7,7 @@ dependency-injector==4.41.0
 dramatiq==1.14.2
 exceptiongroup==1.1.1
 fastapi==0.95.1
-gevent==22.10.2
+gevent==23.9.0
 greenlet==2.0.2
 h11==0.14.0
 httpcore==0.17.0
