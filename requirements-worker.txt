@@ -39,7 +39,7 @@ starlette==0.36.2
 termcolor==2.3.0
 tomli==2.0.1
 typing_extensions==4.5.0
-urllib3==1.26.15
+urllib3==1.26.18
 uvicorn==0.22.0
 watchdog==3.0.0
 watchdog-gevent==0.1.1
